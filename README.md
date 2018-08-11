@@ -1,23 +1,28 @@
-# oscilloscope
+# Oscilloscope
 An oscilloscope for python that just works™
 
 ```python3
 import random
 from time import sleep
 
-osc = Oscilloscope(nrows=5, ncols=5)
+import oscilloscope
+
+
+osc = oscilloscope.Osc(nrows=3, ncols=3)
 
 @osc.updater()
 def signal1(update):
     while True:
-        update(row_index=0, col_index=0, amplitude=random.random())
+        update(random.random())
         sleep(0.1)
 
 @osc.updater()
 def signal2(update):
     while True:
-        update(4, 1, random.random())
+        update(random.random(), row=1, col=2)
         sleep(0.1)
 
 osc.start()
 ```
+
+![Image](https://i.imgur.com/JWHQ9Da.png)
