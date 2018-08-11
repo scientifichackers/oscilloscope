@@ -16,9 +16,9 @@ from oscilloscope import Osc
 osc = Osc()
 
 @osc.signal
-def random_signal(s):
+def random_signal(update):
     while True:
-        s(random.random())
+        update(random.random())
         sleep(0.1)
         
 osc.start()
@@ -44,15 +44,15 @@ from oscilloscope import Osc
 osc = Osc(nrows=2, ncols=3)
 
 @osc.signal
-def signal1(s):
+def signal1(update):
     while True:
-        s(random.random())
+        update(random.random())
         sleep(0.1)
 
 @osc.signal
-def signal2(s):
+def signal2(update):
     while True:
-        s(random.random(), row=1, col=2)
+        update(random.random(), row=1, col=2)
         sleep(0.1)
 
 osc.start()
@@ -76,17 +76,17 @@ from oscilloscope import Osc
 osc = Osc(time_scale_sec=10)  
 
 @osc.signal
-def irregular_signal(s):
+def irregular_signal(update):
     for _ in range(10):
-        s(random.randint(0, 1))
+        update(random.randint(0, 1))
         sleep(0.1)
 
-    s(0.5)
+    update(0.5)
     print("So I'm totally gonna fuck up after a sec")
     sleep(5)
 
     while True:
-        s(random.randint(0, 1000))
+        update(random.randint(0, 1000))
         sleep(0.1)
 
 osc.start()
