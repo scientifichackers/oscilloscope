@@ -95,4 +95,4 @@ osc.start()
 *Gives you this*
 <img src="https://i.imgur.com/8TYCaaK.png" height="300" />
 
-Notice, how, after the 5 sec pause, the range of input changes drastically, but the graph still retains its coherence.
+After the 5 sec pause, the signal range changes drastically, but the graph still retains its coherence!
