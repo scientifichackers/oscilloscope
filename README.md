@@ -97,3 +97,5 @@ osc.start()
 <img src="https://i.imgur.com/8TYCaaK.png" height="300" />
 
 After the 5 sec pause, the signal range changes drastically, but the graph still retains its coherence!
+
+(The Y-axis is basically the % of the max value encountered at the time)
