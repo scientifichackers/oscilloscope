@@ -1,5 +1,5 @@
 # Oscilloscope
-An oscilloscope for python that just works™
+**An oscilloscope for python that just works™**
 
 
 ### It's fucking simple to use
@@ -10,15 +10,15 @@ An oscilloscope for python that just works™
 import random
 from time import sleep
 
-import oscilloscope
+from oscilloscope import Osc
 
 
-osc = oscilloscope.Osc()
+osc = Osc()
 
-@osc.updater
-def random_signal(update):
+@osc.signal
+def random_signal(s):
     while True:
-        update(random.random())
+        s(random.random())
         sleep(0.1)
         
 osc.start()
@@ -30,7 +30,7 @@ osc.start()
 
 ### Parallel compute in-built
 
-Each `osc.updater` gets it's own process.
+Each `osc.signal` gets it's own process.
 
 *This*
 
@@ -38,18 +38,21 @@ Each `osc.updater` gets it's own process.
 import random
 from time import sleep
 
+from oscilloscope import Osc
+
+
 osc = Osc(nrows=2, ncols=3)
 
-@osc.updater
-def signal1(update):
+@osc.signal
+def signal1(s):
     while True:
-        update(random.random())
+        s(random.random())
         sleep(0.1)
 
-@osc.updater
-def signal2(update):
+@osc.signal
+def signal2(s):
     while True:
-        update(random.random(), row=1, col=2)
+        s(random.random(), row=1, col=2)
         sleep(0.1)
 
 osc.start()
@@ -58,3 +61,38 @@ osc.start()
 *Gives you this*
 
 <img src="https://i.imgur.com/JWHQ9Da.png" height="300" />
+
+### Automatic normalization built-in
+
+*This*
+```python3
+import random
+from time import sleep
+
+from oscilloscope import Osc
+
+
+# increase the time scale so we can see clearly
+osc = Osc(time_scale_sec=10)  
+
+@osc.signal
+def irregular_signal(s):
+    for _ in range(10):
+        s(random.randint(0, 1))
+        sleep(0.1)
+
+    s(0.5)
+    print("So I'm totally gonna fuck up after a sec")
+    sleep(5)
+
+    while True:
+        s(random.randint(0, 1000))
+        sleep(0.1)
+
+osc.start()
+```
+
+*Gives you this*
+<img src="https://i.imgur.com/8TYCaaK.png" height="300" />
+
+Notice, how, after the 5 sec pause, the range of input changes drastically, but the graph still retains its coherence.
