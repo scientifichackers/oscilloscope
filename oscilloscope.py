@@ -19,25 +19,28 @@ class Normalizer:
         self.bounds = [0, 0]
         self.norm_factor = 0
 
-    def _update_norm_factor(self):
+    def refresh_norm_factor(self):
         self.norm_factor = 1 / (self.bounds[1] - self.bounds[0]) * 100
 
-    def normalize(self, val):
+    def adjust_norm_factor(self, val):
         if val < self.bounds[0]:
             self.bounds[0] = val
-            self._update_norm_factor()
+            self.refresh_norm_factor()
         elif val > self.bounds[1]:
             self.bounds[1] = val
-            self._update_norm_factor()
+            self.refresh_norm_factor()
 
-        return val * self.norm_factor
+    def normalize(self, val):
+        self.adjust_norm_factor(val)
+
+        return (val - self.bounds[0]) * self.norm_factor
 
 
 class AnimationScope:
     def __init__(
         self,
         ax,
-        frame_size_sec,
+        window_sec,
         frame_interval_sec,
         xlabel,
         ylabel,
@@ -47,18 +50,34 @@ class AnimationScope:
     ):
         self.row_index = row_index
         self.col_index = col_index
+        self.ax = ax
 
-        num_frames = int(frame_size_sec / frame_interval_sec)
+        self.bounds = [0, 0]
 
-        self.time_axis = np.linspace(-frame_size_sec, 0, num_frames)
+        num_frames = int(window_sec / frame_interval_sec)
+        self.time_axis = np.linspace(-window_sec, 0, num_frames)
         self.amplitude_axis = np.zeros([1, num_frames])
 
         self.line = Line2D(self.time_axis, self.amplitude_axis, linewidth=intensity)
-        ax.add_line(self.line)
-        ax.set(ylim=(0, 100), xlim=(-frame_size_sec, 0), xlabel=xlabel, ylabel=ylabel)
+        self.ax.add_line(self.line)
+        self.ax.set(xlim=(-window_sec, 0), xlabel=xlabel, ylabel=ylabel)
+
+    def refresh_ylim(self):
+        self.ax.set_ylim(self.bounds)
+
+    def adjust_ylim(self, amplitude):
+        if amplitude < self.bounds[0]:
+            self.bounds[0] = amplitude
+            self.refresh_ylim()
+        elif amplitude > self.bounds[1]:
+            self.bounds[1] = amplitude
+            self.refresh_ylim()
 
     def draw(self, n):
         amplitude = ctx.state.get((self.row_index, self.col_index), 0)
+
+        # make adjustments to the ylim if required
+        self.adjust_ylim(amplitude)
 
         # Add new amplitude to end
         self.amplitude_axis = np.append(self.amplitude_axis, amplitude)
@@ -77,9 +96,9 @@ class Osc:
         self,
         *,
         fps: Union[float, int] = 60,
-        time_axis_sec: Union[float, int] = 5,
-        intensity: Union[float, int] = 5,
-        animscope: type = AnimationScope,
+        window_sec: Union[float, int] = 5,
+        intensity: Union[float, int] = 2.5,
+        normalize: bool = False,
         xlabel: str = "Time (sec)",
         ylabel: str = "Amplitude",
         nrows: int = 1,
@@ -89,6 +108,7 @@ class Osc:
 
         self.nrows = nrows
         self.ncols = ncols
+        self.normalize = normalize
 
         self.scopes = []
         self.gc_protect = []
@@ -97,9 +117,9 @@ class Osc:
 
         for row_index, row_axes in enumerate(axes):
             for col_index, ax in enumerate(row_axes):
-                scope = animscope(
+                scope = AnimationScope(
                     ax,
-                    time_axis_sec,
+                    window_sec,
                     frame_interval_sec,
                     xlabel,
                     ylabel,
@@ -118,20 +138,44 @@ class Osc:
 
     def signal(self, fn):
         @wraps(fn)
-        def _singal(state, nrows, ncols):
-            normalizer = Normalizer()
+        def _singal(state, nrows, ncols, normalize):
+            if normalize:
+                normalizer = Normalizer()
 
-            def update_fn(amplitude, row=0, col=0):
-                if not 0 <= row < nrows:
-                    raise ValueError(f'"row" must be one of {list(range(0, nrows))}')
-                if not 0 <= col < ncols:
-                    raise ValueError(f'"col" must be one of {list(range(0, ncols))}')
+                def update_fn(amplitude, row=0, col=0):
+                    if not 0 <= row < nrows:
+                        raise ValueError(
+                            f'"row" must be one of {list(range(0, nrows))}'
+                        )
+                    if not 0 <= col < ncols:
+                        raise ValueError(
+                            f'"col" must be one of {list(range(0, ncols))}'
+                        )
 
-                state[(row, col)] = normalizer.normalize(amplitude)
+                    state[(row, col)] = normalizer.normalize(amplitude)
+
+            else:
+
+                def update_fn(amplitude, row=0, col=0):
+                    if not 0 <= row < nrows:
+                        raise ValueError(
+                            f'"row" must be one of {list(range(0, nrows))}'
+                        )
+                    if not 0 <= col < ncols:
+                        raise ValueError(
+                            f'"col" must be one of {list(range(0, ncols))}'
+                        )
+
+                    state[(row, col)] = amplitude
 
             fn(update_fn)
 
-        return ctx.process(_singal, args=(self.nrows, self.ncols))
+        return ctx.process(_singal, args=(self.nrows, self.ncols, self.normalize))
 
     def start(self):
         plt.show()
+
+    def stop(self):
+        ctx.stop_all()
+        plt.close()
+        print(ctx.process_list)

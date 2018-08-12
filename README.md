@@ -1,39 +1,38 @@
 # Oscilloscope
 **An oscilloscope for python that just works™**
 
+## Features
 
-### It's fucking simple to use
+### Simple to use
 
-*This*
-
+[*This*](examples/simple_signal.py)
 ```python3
 import random
 from time import sleep
 
 from oscilloscope import Osc
 
-
 osc = Osc()
 
+
 @osc.signal
-def random_signal(update):
+def simple_random_signal(update):
     while True:
         update(random.random())
         sleep(0.1)
-        
+
+
 osc.start()
 ```
-
 *Gives you this*
 
-<img src="https://i.imgur.com/jB3wzgT.png" height="300" />
+<img src="https://i.imgur.com/BMeYoXG.png" height="300" />
 
 ### Parallel compute
 
 Each `osc.signal` gets it's own process.
 
-*This*
-
+[*This*](examples/parallel_signals.py)
 ```python3
 import random
 from time import sleep
@@ -43,11 +42,13 @@ from oscilloscope import Osc
 
 osc = Osc(nrows=2, ncols=3)
 
+
 @osc.signal
 def signal1(update):
     while True:
         update(random.random())
         sleep(0.1)
+
 
 @osc.signal
 def signal2(update):
@@ -55,18 +56,20 @@ def signal2(update):
         update(random.random(), row=1, col=2)
         sleep(0.1)
 
+
 osc.start()
 ```
-
 *Gives you this*
 
-<img src="https://i.imgur.com/JWHQ9Da.png" height="300" />
+<img src="https://i.imgur.com/PPC7z4m.png" height="300" />
 
 P.S. Don't worry about race conditions, `update()` is atomic. (See [zproc](https://github.com/pycampers/zproc))
 
-### Automatic normalization
+### Dynamic axis scale
 
-*This*
+The Y-axis's scale is dynamic, meaning that the graph's y axis scales with your signal.
+
+[*This*](examples/increasing.py)
 ```python3
 import random
 from time import sleep
@@ -74,37 +77,63 @@ from time import sleep
 from oscilloscope import Osc
 
 
-# increase the time scale so we can see clearly
-osc = Osc(time_axis_sec=10)
+# adjust window_sec and intensity to improve visibility
+osc = Osc(window_sec=10, intensity=1)
+
 
 @osc.signal
-def irregular_signal(update):
-    for _ in range(10):
-        update(random.randint(0, 1))
-        sleep(0.1)
-
-    update(0.5)
-
-    print("so I'm totally gonna fuck up after 5 sec")
-    sleep(5)
+def increasing_signal(update):
+    delta = 1
 
     while True:
-        update(random.randint(0, 1000))
-        sleep(0.1)
+        update(random.randint(-delta, delta))
+        delta += 5
+        sleep(0.01)
+
 
 osc.start()
 ```
-
 *Gives you this*
 
-<img src="https://i.imgur.com/8TYCaaK.png" height="300" />
+<img src="https://i.imgur.com/r1vHcKH.png" height="300" />
 
-After the 5 sec pause, the signal range changes drastically, but the graph still retains its coherence!
+### Automatic normalization
 
-(The Y-axis is basically the % of the max value encountered at the time)
+[*This*](examples/normalized.py)
+```python3
+import random
+from time import sleep
+
+from oscilloscope import Osc
 
 
-# Install
+# turn on normalization
+osc = Osc(normalize=True)
+
+
+@osc.signal
+def increasing_signal(update):
+    delta = 1
+
+    while True:
+        update(random.randint(-delta, delta))
+        delta += 5
+        sleep(0.01)
+
+
+osc.start()
+```
+*Gives you this*
+
+<img src="https://i.imgur.com/Dlve8rJ.png" height="300" />
+
+This was the same signal as the [earlier](#Automatic normalization) one, 
+but it looks a lot like the simple example, because we turned on normalization! 
+
+The Y-axis will now show, % max-amplitude encountered at the time, not the raw value.
+
+
+## Install
 
 
 `pip install oscilloscope`
