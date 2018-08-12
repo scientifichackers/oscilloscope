@@ -28,7 +28,7 @@ osc.start()
 
 <img src="https://i.imgur.com/jB3wzgT.png" height="300" />
 
-### Parallel compute in-built
+### Parallel compute
 
 Each `osc.signal` gets it's own process.
 
@@ -62,7 +62,7 @@ osc.start()
 
 <img src="https://i.imgur.com/JWHQ9Da.png" height="300" />
 
-### Automatic normalization built-in
+### Automatic normalization
 
 *This*
 ```python3
@@ -73,7 +73,7 @@ from oscilloscope import Osc
 
 
 # increase the time scale so we can see clearly
-osc = Osc(time_scale_sec=10)  
+osc = Osc(time_axis_sec=10)
 
 @osc.signal
 def irregular_signal(update):
@@ -82,7 +82,8 @@ def irregular_signal(update):
         sleep(0.1)
 
     update(0.5)
-    print("So I'm totally gonna fuck up after a sec")
+
+    print("so I'm totally gonna fuck up after 5 sec")
     sleep(5)
 
     while True:
@@ -99,3 +100,12 @@ osc.start()
 After the 5 sec pause, the signal range changes drastically, but the graph still retains its coherence!
 
 (The Y-axis is basically the % of the max value encountered at the time)
+
+
+# Install
+
+
+`pip install oscilloscope`
+
+Licence: MIT<br>
+Requires Python >= 3.6

@@ -1,3 +1,7 @@
+import matplotlib
+
+matplotlib.use("Qt5Agg")
+
 from functools import wraps
 from typing import Union
 
@@ -73,12 +77,13 @@ class Osc:
         self,
         *,
         fps: Union[float, int] = 60,
-        time_scale_sec: Union[float, int] = 5,
+        time_axis_sec: Union[float, int] = 5,
+        intensity: Union[float, int] = 5,
+        animscope: type = AnimationScope,
         xlabel: str = "Time (sec)",
         ylabel: str = "Amplitude",
         nrows: int = 1,
         ncols: int = 1,
-        intensity: Union[float, int] = 5,
     ):
         frame_interval_sec = 1 / fps
 
@@ -92,9 +97,9 @@ class Osc:
 
         for row_index, row_axes in enumerate(axes):
             for col_index, ax in enumerate(row_axes):
-                scope = AnimationScope(
+                scope = animscope(
                     ax,
-                    time_scale_sec,
+                    time_axis_sec,
                     frame_interval_sec,
                     xlabel,
                     ylabel,
