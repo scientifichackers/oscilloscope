@@ -127,8 +127,8 @@ osc.start()
 
 <img src="https://i.imgur.com/Dlve8rJ.png" height="300" />
 
-This was the same signal as the [earlier](#automatic-normalization) one, 
-but it looks a lot like the simple example, because we turned on normalization! 
+This was the same signal as the [last example](#dynamic-axis-scale), 
+but it looks a lot like the [simple example](#simple-to-use), because we turned on normalization! 
 
 The Y-axis will now show, % max-amplitude encountered at the time, not the raw value.
 
