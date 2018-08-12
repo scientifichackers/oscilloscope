@@ -62,6 +62,8 @@ osc.start()
 
 <img src="https://i.imgur.com/JWHQ9Da.png" height="300" />
 
+P.S. Don't worry about race conditions, `update()` is atomic. (See [zproc](https://github.com/pycampers/zproc))
+
 ### Automatic normalization
 
 *This*
@@ -109,3 +111,9 @@ After the 5 sec pause, the signal range changes drastically, but the graph still
 
 Licence: MIT<br>
 Requires Python >= 3.6
+
+---
+
+<a href="https://www.buymeacoffee.com/u75YezVri" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/black_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+
+[🐍🏕️](http://www.pycampers.com/)
