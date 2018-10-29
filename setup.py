@@ -18,10 +18,10 @@ URL = "https://github.com/devxpy/oscilloscope"
 EMAIL = "devxpy@gmail.com"
 AUTHOR = "Dev Aggarwal"
 REQUIRES_PYTHON = ">=3.6.0"
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 
 # What packages are required for this module to be executed?
-REQUIRED = ["matplotlib", "zproc", "pyqt5"]
+REQUIRED = ["matplotlib", "zproc"]
 
 # What packages are optional?
 EXTRAS = {}
