@@ -11,11 +11,11 @@ osc = Osc(normalize=True)
 
 
 @osc.signal
-def increasing_signal(update):
+def increasing_signal(state):
     delta = 1
 
     while True:
-        update(random.randint(-delta, delta))
+        state.draw(random.randint(-delta, delta))
         delta += 5
         sleep(0.01)
 

@@ -9,9 +9,9 @@ osc = Osc()
 
 
 @osc.signal
-def simple_random_signal(update):
+def simple_random_signal(state):
     while True:
-        update(random.random())
+        state.draw(random.random())
         sleep(0.1)
 
 

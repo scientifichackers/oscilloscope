@@ -16,9 +16,9 @@ osc = Osc()
 
 
 @osc.signal
-def simple_random_signal(update):
+def simple_random_signal(state):
     while True:
-        update(random.random())
+        state.draw(random.random())
         sleep(0.1)
 
 
@@ -44,16 +44,16 @@ osc = Osc(nrows=2, ncols=3)
 
 
 @osc.signal
-def signal1(update):
+def signal1(state):
     while True:
-        update(random.random())
+        state.draw((random.random())
         sleep(0.1)
 
 
 @osc.signal
-def signal2(update):
+def signal2(state):
     while True:
-        update(random.random(), row=1, col=2)
+        state.draw(random.random(), row=1, col=2)
         sleep(0.1)
 
 
@@ -63,7 +63,7 @@ osc.start()
 
 <img src="https://i.imgur.com/PPC7z4m.png" height="300" />
 
-P.S. Don't worry about race conditions, `update()` is atomic. (See [zproc](https://github.com/pycampers/zproc))
+P.S. Don't worry about race conditions, `state.draw()` is atomic. (See [zproc](https://github.com/pycampers/zproc))
 
 ### Dynamic axis scale
 
@@ -82,11 +82,11 @@ osc = Osc(window_sec=10, intensity=1)
 
 
 @osc.signal
-def increasing_signal(update):
+def increasing_signal(state):
     delta = 1
 
     while True:
-        update(random.randint(-delta, delta))
+        state.draw(random.randint(-delta, delta))
         delta += 5
         sleep(0.01)
 
@@ -112,11 +112,11 @@ osc = Osc(normalize=True)
 
 
 @osc.signal
-def increasing_signal(update):
+def increasing_signal(state):
     delta = 1
 
     while True:
-        update(random.randint(-delta, delta))
+        state.draw(random.randint(-delta, delta))
         delta += 5
         sleep(0.01)
 

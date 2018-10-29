@@ -10,16 +10,16 @@ osc = Osc(nrows=2, ncols=3)
 
 
 @osc.signal
-def signal1(update):
+def signal1(state):
     while True:
-        update(random.random())
+        state.draw(random.random())
         sleep(0.1)
 
 
 @osc.signal
-def signal2(update):
+def signal2(state):
     while True:
-        update(random.random(), row=1, col=2)
+        state.draw(random.random(), row=1, col=2)
         sleep(0.1)
 
 

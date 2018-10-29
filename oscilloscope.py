@@ -1,9 +1,5 @@
-import matplotlib
-
-matplotlib.use("Qt5Agg")
-
 from functools import wraps
-from typing import Union
+from typing import Union, Callable
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -11,91 +7,140 @@ import numpy as np
 import zproc
 from matplotlib.lines import Line2D
 
-ctx = zproc.Context()
+zproc_ctx = zproc.Context()
+ZPROC_INTERNAL_NAMESPACE = "oscilloscope"
 
 
 class Normalizer:
-    def __init__(self):
-        self.bounds = [0, 0]
-        self.norm_factor = 0
+    def __init__(self, output_range: tuple = (0, 100)):
+        self._input_min = 0
+        self._input_max = 0
 
-    def refresh_norm_factor(self):
-        self.norm_factor = 1 / (self.bounds[1] - self.bounds[0]) * 100
+        self._output_min, self._output_max = output_range
+        self._output_diff = self._output_max - self._output_min
 
-    def adjust_norm_factor(self, val):
-        if val < self.bounds[0]:
-            self.bounds[0] = val
-            self.refresh_norm_factor()
-        elif val > self.bounds[1]:
-            self.bounds[1] = val
-            self.refresh_norm_factor()
+        self._norm_factor = 0
 
-    def normalize(self, val):
-        self.adjust_norm_factor(val)
+    def _refresh_norm_factor(self):
+        self._norm_factor = 1 / (self._input_max - self._input_min) * self._output_diff
 
-        return (val - self.bounds[0]) * self.norm_factor
+    def _refresh_bounds(self, input_value):
+        if input_value < self._input_min:
+            self._input_min = input_value
+            self._refresh_norm_factor()
+        elif input_value > self._input_max:
+            self._input_max = input_value
+            self._refresh_norm_factor()
+
+    def normalize(self, input_value):
+        self._refresh_bounds(input_value)
+        return (input_value - self._input_min) * self._norm_factor + self._output_min
+
+
+def shift(ax, x):
+    return np.delete(np.append(ax, x), 0)
 
 
 class AnimationScope:
     def __init__(
         self,
-        ax,
+        ax: plt.Axes,
         window_sec,
         frame_interval_sec,
-        xlabel,
-        ylabel,
         row_index,
         col_index,
         intensity,
+        padding_percent,
     ):
         self.row_index = row_index
         self.col_index = col_index
         self.ax = ax
+        self.padding_percent = padding_percent
 
-        self.bounds = [0, 0]
+        self.frame_interval_sec = frame_interval_sec
+        self.num_frames = int(window_sec / self.frame_interval_sec)
 
-        num_frames = int(window_sec / frame_interval_sec)
-        self.time_axis = np.linspace(-window_sec, 0, num_frames)
-        self.amplitude_axis = np.zeros([1, num_frames])
+        self.y_values = np.zeros([1, self.num_frames])
+        self.x_values = np.linspace(-window_sec, 0, self.num_frames)
 
-        self.line = Line2D(self.time_axis, self.amplitude_axis, linewidth=intensity)
+        self.line = Line2D(self.x_values, self.y_values, linewidth=intensity)
         self.ax.add_line(self.line)
-        self.ax.set(xlim=(-window_sec, 0), xlabel=xlabel, ylabel=ylabel)
+        self.ax.set_xlim(-window_sec, 0)
 
-    def refresh_ylim(self):
-        self.ax.set_ylim(self.bounds)
+        self.y_limits = np.array([0, np.finfo(np.float).eps])
+        self.ax.set_ylim(self.y_limits[0], self.y_limits[1])
 
-    def adjust_ylim(self, amplitude):
-        if amplitude < self.bounds[0]:
-            self.bounds[0] = amplitude
-            self.refresh_ylim()
-        elif amplitude > self.bounds[1]:
-            self.bounds[1] = amplitude
-            self.refresh_ylim()
+        self._internal_state = zproc.State(
+            zproc_ctx.server_address, namespace=ZPROC_INTERNAL_NAMESPACE
+        )
 
-    def draw(self, n):
-        amplitude = ctx.state.get((self.row_index, self.col_index), 0)
+    def _adjust_ylim(self):
+        padding = self.padding_percent * (self.y_limits[1] - self.y_limits[0]) / 100
+        self.ax.set_ylim(self.y_limits[0] - padding, self.y_limits[1] + padding)
 
-        # make adjustments to the ylim if required
-        self.adjust_ylim(amplitude)
+    def _adjust_ylim_if_req(self, amplitude):
+        if amplitude < self.y_limits[0]:
+            self.y_limits[0] = amplitude
+            self._adjust_ylim()
+        elif amplitude > self.y_limits[1]:
+            self.y_limits[1] = amplitude
+            self._adjust_ylim()
 
-        # Add new amplitude to end
-        self.amplitude_axis = np.append(self.amplitude_axis, amplitude)
+    def draw(self, _):
+        try:
+            amplitude, kwargs = self._internal_state[(self.row_index, self.col_index)]
+        except KeyError:
+            pass
+        else:
+            # set the labels
+            self.ax.set(**kwargs)
 
-        # remove old amplitude from start
-        self.amplitude_axis = np.delete(self.amplitude_axis, 0)
+            try:
+                size = np.ceil(self.num_frames / len(amplitude))
+                self.y_values = np.resize(
+                    np.repeat(np.array([amplitude]), size, axis=1), [1, self.num_frames]
+                )
 
-        # update line
-        self.line.set_data(self.time_axis, self.amplitude_axis)
+                self._adjust_ylim_if_req(np.min(self.y_values))
+                self._adjust_ylim_if_req(np.max(self.y_values))
+            except TypeError:
+                self.y_values = shift(self.y_values, amplitude)
+                self._adjust_ylim_if_req(amplitude)
 
-        return (self.line,)
+            # update line
+            self.line.set_data(self.x_values, self.y_values)
+        return [self.line]
+
+
+def _signal_process(state: zproc.State, fn: Callable, normalize: bool, *args, **kwargs):
+    if normalize:
+        normalizer = Normalizer()
+
+        def _normalize(val):
+            return normalizer.normalize(val)
+
+    else:
+
+        def _normalize(val):
+            return val
+
+    _internal_state = zproc.State(
+        state.server_address, namespace=ZPROC_INTERNAL_NAMESPACE
+    )
+
+    def draw(amplitude, *, row=0, col=0, **kwargs):
+        amplitude = _normalize(amplitude)
+        _internal_state[(row, col)] = amplitude, kwargs
+
+    state.draw = draw
+    fn(state, *args, **kwargs)
 
 
 class Osc:
     def __init__(
         self,
         *,
-        fps: Union[float, int] = 60,
+        fps: Union[float, int] = 24,
         window_sec: Union[float, int] = 5,
         intensity: Union[float, int] = 2.5,
         normalize: bool = False,
@@ -103,14 +148,17 @@ class Osc:
         ylabel: str = "Amplitude",
         nrows: int = 1,
         ncols: int = 1,
+        padding_percent: Union[float, int] = 0,
     ):
         frame_interval_sec = 1 / fps
 
         self.nrows = nrows
         self.ncols = ncols
         self.normalize = normalize
+        self.xlabel = xlabel
+        self.ylabel = ylabel
 
-        self.scopes = []
+        self.anim_scopes = {}
         self.gc_protect = []
 
         fig, axes = plt.subplots(self.nrows, self.ncols, squeeze=False)
@@ -118,14 +166,13 @@ class Osc:
         for row_index, row_axes in enumerate(axes):
             for col_index, ax in enumerate(row_axes):
                 scope = AnimationScope(
-                    ax,
-                    window_sec,
-                    frame_interval_sec,
-                    xlabel,
-                    ylabel,
-                    row_index,
-                    col_index,
-                    intensity,
+                    ax=ax,
+                    window_sec=window_sec,
+                    frame_interval_sec=frame_interval_sec,
+                    row_index=row_index,
+                    col_index=col_index,
+                    intensity=intensity,
+                    padding_percent=padding_percent,
                 )
 
                 self.gc_protect.append(
@@ -134,48 +181,27 @@ class Osc:
                     )
                 )
 
-                self.scopes.append(scope)
+                self.anim_scopes[(row_index, col_index)] = scope
 
-    def signal(self, fn):
-        @wraps(fn)
-        def _singal(state, nrows, ncols, normalize):
-            if normalize:
-                normalizer = Normalizer()
+    def signal(self, fn=None, **process_kwargs):
+        if fn is None:
 
-                def update_fn(amplitude, row=0, col=0):
-                    if not 0 <= row < nrows:
-                        raise ValueError(
-                            f'"row" must be one of {list(range(0, nrows))}'
-                        )
-                    if not 0 <= col < ncols:
-                        raise ValueError(
-                            f'"col" must be one of {list(range(0, ncols))}'
-                        )
+            @wraps(fn)
+            def wrapper(fn):
+                return self.signal(fn, **process_kwargs)
 
-                    state[(row, col)] = normalizer.normalize(amplitude)
+            return wrapper
 
-            else:
+        process_kwargs["start"] = False
+        process_kwargs["args"] = (fn, self.normalize, *process_kwargs.get("args", ()))
 
-                def update_fn(amplitude, row=0, col=0):
-                    if not 0 <= row < nrows:
-                        raise ValueError(
-                            f'"row" must be one of {list(range(0, nrows))}'
-                        )
-                    if not 0 <= col < ncols:
-                        raise ValueError(
-                            f'"col" must be one of {list(range(0, ncols))}'
-                        )
-
-                    state[(row, col)] = amplitude
-
-            fn(update_fn)
-
-        return ctx.process(_singal, args=(self.nrows, self.ncols, self.normalize))
+        return zproc_ctx.process(_signal_process, **process_kwargs)
 
     def start(self):
+        zproc_ctx.start_all()
         plt.show()
+        zproc_ctx.wait_all()
 
     def stop(self):
-        ctx.stop_all()
+        zproc_ctx.stop_all()
         plt.close()
-        print(ctx.process_list)
