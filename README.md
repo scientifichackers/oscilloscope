@@ -136,13 +136,14 @@ The Y-axis will now show, % max-amplitude encountered at the time, not the raw v
 ## Install
 
 
+[![PyPI](https://img.shields.io/pypi/pyversions/zproc.svg?style=for-the-badge)](https://pypi.org/project/oscilloscope/)
+
+
 `pip install oscilloscope`
 
 Licence: MIT<br>
-Requires Python >= 3.6
+Python 3.6+ only.
 
 ---
-
-<a href="https://www.buymeacoffee.com/u75YezVri" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/black_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 
 [🐍🏕️](http://www.pycampers.com/)
