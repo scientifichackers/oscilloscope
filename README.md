@@ -141,7 +141,7 @@ The Y-axis will now show, % max-amplitude encountered at the time, not the raw v
 
 `pip install oscilloscope`
 
-Licence: MIT<br>
+MIT Licence<br>
 Python 3.6+ only.
 
 ---
