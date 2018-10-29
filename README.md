@@ -136,7 +136,7 @@ The Y-axis will now show, % max-amplitude encountered at the time, not the raw v
 ## Install
 
 
-[![PyPI](https://img.shields.io/pypi/pyversions/zproc.svg?style=for-the-badge)](https://pypi.org/project/oscilloscope/)
+[![PyPI](https://img.shields.io/pypi/v/oscilloscope.svg?style=for-the-badge)](https://pypi.org/project/oscilloscope/)
 
 
 `pip install oscilloscope`
