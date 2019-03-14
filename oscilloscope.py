@@ -70,8 +70,8 @@ class AnimationScope:
         self.y_limits = np.array([0, np.finfo(np.float).eps])
         self.ax.set_ylim(self.y_limits[0], self.y_limits[1])
 
-        self._internal_state = zproc.State(
-            zproc_ctx.server_address, namespace=ZPROC_INTERNAL_NAMESPACE
+        self._internal_state = zproc_ctx.create_state(
+            namespace=ZPROC_INTERNAL_NAMESPACE
         )
 
     def _adjust_ylim(self):
@@ -112,7 +112,7 @@ class AnimationScope:
         return [self.line]
 
 
-def _signal_process(state: zproc.State, fn: Callable, normalize: bool, *args, **kwargs):
+def _signal_process(ctx: zproc.Context, fn: Callable, normalize: bool, *args, **kwargs):
     if normalize:
         normalizer = Normalizer()
 
@@ -124,9 +124,8 @@ def _signal_process(state: zproc.State, fn: Callable, normalize: bool, *args, **
         def _normalize(val):
             return val
 
-    _internal_state = zproc.State(
-        state.server_address, namespace=ZPROC_INTERNAL_NAMESPACE
-    )
+    state = ctx.create_state()
+    _internal_state = state.fork(namespace=ZPROC_INTERNAL_NAMESPACE)
 
     def draw(amplitude, *, row=0, col=0, **kwargs):
         amplitude = _normalize(amplitude)
@@ -195,12 +194,12 @@ class Osc:
         process_kwargs["start"] = False
         process_kwargs["args"] = (fn, self.normalize, *process_kwargs.get("args", ()))
 
-        return zproc_ctx.process(_signal_process, **process_kwargs)
+        return zproc_ctx.spawn(_signal_process, **process_kwargs)
 
     def start(self):
         zproc_ctx.start_all()
         plt.show()
-        zproc_ctx.wait_all()
+        zproc_ctx.wait()
 
     def stop(self):
         zproc_ctx.stop_all()

@@ -1,0 +1,5 @@
+matplotlib
+zproc>=0.9.5
+twine
+pip-tools
+-e .
